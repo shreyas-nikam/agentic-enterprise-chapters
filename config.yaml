@@ -1,0 +1,79 @@
+project:
+  name: agentic-enterprise-chapters
+  version: 0.1.0
+  description: >
+    Multi-step LLM pipeline for drafting and refining chapters of
+    "The Agentic Enterprise: How Humans and Machines Will Run the Future of Work".
+
+paths:
+  base_dir: .
+  global_dir: ./global
+  chapters_dir: ./chapters
+  prompts_file: ./prompts/prompts_reference.md
+  logs_dir: ./logs
+
+models:
+  # Extraction / restructuring
+  step0: gpt-5.1-mini        # Book Outline Abstractor
+  step1: gpt-5.1-thinking    # Chapter Structure Abstractor
+  step2: gpt-5.1-thinking    # Style Abstractor
+  step3: gpt-5.1-mini        # Chapter Outline Abstractor
+
+  # Long-form generation
+  step4: gpt-5.1-thinking    # Chapter Generator
+
+  # LLM-as-judge evaluators
+  outline_judge: gpt-5.1-thinking
+  chapter_judge: gpt-5.1-thinking
+
+generation:
+  # Default values; can be overridden per-step if needed
+  temperature: 0.7
+  top_p: 0.95
+  max_output_tokens: 4096
+
+judges:
+  outline_thresholds:
+    structure_min: 7         # min Structure completeness score to auto-continue
+    alignment_min: 7         # min Alignment with book outline
+    placeholder_clarity_min: 7
+    coverage_min: 7
+  chapter_thresholds:
+    structure_min: 7
+    style_min: 7
+    content_alignment_min: 7
+    placeholder_handling_min: 9
+
+chapters:
+  # Default options for per-chapter runs
+  default_sample_chapter_id: "1"
+  # Used for Step 1 (structure) as structural reference
+  default_sample_chapter_path: ./chapters/ch01/Chapter_1.md
+
+  # Optional: limit which parts can be regenerated automatically
+  regeneration:
+    allow_regenerate_fiction: true
+    allow_regenerate_current_state: true
+    allow_regenerate_frameworks: true
+    allow_regenerate_roadmap: true
+    # If false, Step 4 generators should preserve those sections verbatim if already locked
+    allow_regenerate_locked_sections: false
+
+logging:
+  enabled: true
+  level: INFO
+  format: "[%(asctime)s] %(levelname)s %(name)s: %(message)s"
+  # You can log each model call, inputs hash, outputs path, and judge scores
+  log_llm_calls: true
+  log_judge_results: true
+
+rate_limits:
+  # Soft safety rails so you don’t blow through tokens by accident
+  max_concurrent_chapter_runs: 3
+  pause_seconds_between_calls: 0.5
+
+human_in_the_loop:
+  # If true, pipeline should pause after Step 3 and Step 4 unless
+  # a human explicitly approves proceeding.
+  require_outline_approval: true
+  require_chapter_approval: true
